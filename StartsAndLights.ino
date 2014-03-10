@@ -1,19 +1,43 @@
 #define PIN_COUNT 14
+struct Fader {
+  int pin;
+  String commandLow;
+  String commandHigh;
+  int lastState;
+  long lastDebounce;
+  bool sent;
+  long debounceDelay;
+};
+
+struct Light {
+  unsigned int pin;
+  String commandHigh;
+  String commandLow;
+};
 
 class Faders
 {
   private:
     int _count;
-    int _pin[PIN_COUNT];
-    int _lastState[PIN_COUNT];
-    long _lastDebounce[PIN_COUNT];
-    bool _sent[PIN_COUNT];
-    long _debounceDelay[PIN_COUNT];
-    String _commandLow[PIN_COUNT];
-    String _commandHigh[PIN_COUNT];
+    Fader _faders[PIN_COUNT];
   public:
     Faders();
     void add(int pin, String startCommand, String stopCommand);
+    void wakeUp();
+};
+
+class Lights 
+{
+  private:
+    unsigned int _count;
+    Light _lights[PIN_COUNT];
+    char* _inputData;
+    char _inputChar;
+    bool _strComplete;
+    unsigned int _inputDataLength;
+  public:
+    Lights();
+    void add(int pin, String commandHigh, String commandLow);
     void wakeUp();
 };
 
@@ -21,108 +45,94 @@ Faders::Faders() {
   _count = 0;
 }
 
+Lights::Lights() {
+  _count = 0;
+  _inputDataLength = 0;
+  _strComplete = false;  
+}
+
 void Faders::add(int pin, String startCommand, String stopCommand) {
-  _debounceDelay[_count] = 10;
-  _sent[_count] = false;
-  _lastDebounce[_count] = 0;
-  _lastState[_count] = HIGH;
-  _pin[_count] = pin;
-  _commandLow[_count] = startCommand;
-  _commandHigh[_count] = stopCommand;
+  _faders[_count].lastState = HIGH;
+  _faders[_count].lastDebounce = 0;
+  _faders[_count].sent = false;
+  _faders[_count].debounceDelay = 10;
+  _faders[_count].pin = pin;
+  _faders[_count].commandLow = startCommand;
+  _faders[_count].commandHigh = stopCommand;
+  
   pinMode(pin, INPUT);
   digitalWrite(pin, HIGH);
   _count++;
 }
 
-void Faders::wakeUp()
-{
-  for(int i = 0; i < _count; i++) {
-  int reading = digitalRead(_pin[i]);
-  if(reading != _lastState[i]) {
-    _lastDebounce[i] = millis();
-  }
-  
-  if((millis() - _lastDebounce[i]) > _debounceDelay[i]) {
-    if(reading == LOW && _sent[i] == false) {
-       if(_commandLow[i] != "")
-         Serial.println(_commandLow[i]);
-         
-       _sent[i] = true;
-    }
-    if(reading == HIGH && _sent[i] == true) {
-      if(_commandHigh[i] != "")
-        Serial.println(_commandHigh[i]);
-      
-      _sent[i] = false;
-    }
-  }
-  _lastState[i] = reading;
-  }
-}
-
-class Lights 
-{
-  private:
-    int _pins[PIN_COUNT];
-    String _commandsHigh[PIN_COUNT];
-    String _commandsLow[PIN_COUNT];
-    unsigned int _count;
-    unsigned short int _strComplete;
-    char* _inputData;
-    int _inputDataLength;
-  public:
-    Lights();
-    void add(int pin, String commandHigh, String commandLow);
-    void wakeUp();
-};
-
-Lights::Lights() {
-  _count = 0;
-  _strComplete = 0;
-  _inputData = 0;  
-}
-
 void Lights::add(int pin, String commandHigh, String commandLow) {
-  _pins[_count] = pin;
-  _commandsHigh[_count] = commandHigh;
-  _commandsLow[_count] = commandLow;
+  
+  _lights[_count].pin = pin;
+  _lights[_count].commandHigh = commandHigh;
+  _lights[_count].commandLow = commandLow;
   
   pinMode(pin, OUTPUT);
   digitalWrite(pin, LOW);
   _count++;
 }
 
+void Faders::wakeUp()
+{
+  for(int i = 0; i < _count; i++) {
+    int reading = digitalRead(_faders[i].pin);
+    if(reading != _faders[i].lastState) {
+      _faders[i].lastDebounce = millis();
+    }
+    
+    if((millis() - _faders[i].lastDebounce) > _faders[i].debounceDelay) {
+      if(reading == LOW && _faders[i].sent == false) {
+         if(_faders[i].commandLow != "")
+           Serial.println(_faders[i].commandLow);
+           
+         _faders[i].sent = true;
+      }
+      if(reading == HIGH && _faders[i].sent == true) {
+        if(_faders[i].commandHigh != "")
+          Serial.println(_faders[i].commandHigh);
+        
+        _faders[i].sent = false;
+      }
+    }
+    _faders[i].lastState = reading;
+  }
+}
+
 void Lights::wakeUp() {
  if(_count < 1) {
    return;
- } 
+ }
  
  while(Serial.available()) {
    char inputChar = (char)Serial.read();
-   _inputDataLength++;
-   _inputData = (char*)realloc(_inputData, _inputDataLength * sizeof(char));
+   _inputData = (char*)realloc(_inputData, (_inputDataLength+1) * sizeof(char));
    if(inputChar == '\n') {
-     _strComplete = 1;
-     _inputData[_inputDataLength - 1] = '\0';
+     _strComplete = true;
+     _inputData[_inputDataLength] = '\0';
    } else {
-     _inputData[_inputDataLength - 1] = inputChar;
+     _inputData[_inputDataLength] = inputChar;
    }
+   _inputDataLength++;
  }
  
- if(_strComplete != 1) {
+ if(!_strComplete) {
    return;
  }
-
+  Serial.println(_inputData);
  for(int i = 0; i <= _count; i++) {
-   if(_commandsHigh[i] == _inputData) {
-     digitalWrite(_pins[i], HIGH); 
+   if(_lights[i].commandHigh == _inputData) {
+     digitalWrite(_lights[i].pin, HIGH);
    }
-   if(_commandsLow[i] == _inputData) {
-     digitalWrite(_pins[i], LOW);
+   if(_lights[i].commandLow == _inputData) {
+     digitalWrite(_lights[i].pin, LOW);
    }
  }
  
- _strComplete = 0;
+ _strComplete = false;
  _inputData = 0;
  _inputDataLength = 0;
 }
@@ -137,7 +147,7 @@ void setup() {
   faders.add(3, "PLAYER 1-1 START", "PLAYER 1-1 STOP");
   faders.add(2, "PLAYER 1-2 START", "PLAYER 1-2 STOP");
   faders.add(12, "CARTWALL SHOW", "CARTWALL HIDE");
-
+  
   // Lecteurs cartouchier
   faders.add(4, "CARTWALL 1 START/STOP", "");
   faders.add(5, "CARTWALL 2 START/STOP", "");
@@ -156,5 +166,5 @@ void loop() {
 }
 
 void serialEvent() {
-  lights.wakeUp(); 
+  lights.wakeUp();
 }
