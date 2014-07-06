@@ -1,0 +1,111 @@
+procedure ArduinoSend(str: string);
+var
+	port: string;
+begin
+	port := Config.ReadString('remote', 'Remote0', 'Port', '')
+	Try
+		SystemLog(port + ': ' + str)
+		ComPort(port).Open()
+		ComPort(port).SendStr(str + #10)
+	Except 
+		
+	end;
+end;
+
+procedure AllOff;
+var
+	i: integer;
+begin
+	for i := 1 to Engine.GetCartwallControl().GetPlayerCount() do
+	begin
+		ArduinoSend('LIGHT ' + IntToStr(i) + ' OFF')
+	end;
+end;
+
+procedure Reload;
+var
+	i: integer;
+	state: TPlayerState;
+begin
+	AllOff()
+	for i := 1 to Engine.GetCartwallControl().GetPlayerCount() do
+	begin
+		state := Engine.GetCartwallControl().GetPlayer(i - 1).GetState()
+		if (state = psLoaded) then
+		begin
+			ArduinoSend('LIGHT ' + IntToStr(i) + ' ON')
+		end;
+		if (state = psPlaying) then
+		begin
+			ArduinoSend('LIGHT ' + IntToStr(i) + ' BLINK')
+		end;
+	end;
+end;
+
+// Called after mAirList startup
+procedure OnStartup;
+begin
+	Reload()
+end;
+
+// Called before mAirList shutdown
+procedure OnShutdown;
+begin
+	AllOff()
+end;
+
+// Called when script is loaded
+procedure OnLoad;
+begin
+	EnableTimer(500)
+	Reload()
+end;
+
+// Called when script is unloaded
+procedure OnUnload;
+begin
+	AllOff()
+	DisableTimer()
+end;
+
+// Called when cart player is started
+procedure OnCartPlayerStart(PlayerIndex: integer; Item: IPlaylistItem);
+begin
+end;
+
+// Called when cart player is stopped
+procedure OnCartPlayerStop(PlayerIndex: integer; Duration: TTimeValue; Item: IPlaylistItem);
+begin
+end;
+
+// Called when cart player changes its state
+procedure OnCartPlayerStateChange(PlayerIndex: integer; OldState: TPlayerState; NewState: TPlayerState);
+begin
+	if (NewState = psLoaded) OR ((OldState = psPlaying) AND (NewState = psStopped)) then
+	begin
+		// Envoyer LIGHT id ON à la carte
+		ArduinoSend('LIGHT ' + IntToStr(PlayerIndex + 1) + ' ON')
+	end;
+	
+	if (NewState = psPlaying) then
+	begin
+		// Envoyer LIGHT id BLINK à la carte
+		ArduinoSend('LIGHT ' + IntToStr(PlayerIndex+1) + ' BLINK');
+	end;
+	
+	if (NewState = psEmpty) then
+	begin
+		// Envoyer LIGHT id OFF à la carte
+		ArduinoSend('LIGHT ' + IntToStr(PlayerIndex + 1) + ' OFF')
+	end;
+end;
+
+// Called every x milliseconds
+// Start in OnLoad with: EnableTimer(x);
+// Stop with: DisableTimer;
+procedure OnTimer;
+begin
+end;
+
+begin
+end.

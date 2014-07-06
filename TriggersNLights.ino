@@ -1,18 +1,23 @@
 #define PIN_COUNT 14
+
 struct Fader {
-  int pin;
-  String commandLow;
-  String commandHigh;
-  int lastState;
-  long lastDebounce;
+  unsigned short pin;
+  char* commandLow;
+  char* commandHigh;
+  short lastState;
+  unsigned long lastDebounce;
   bool sent;
-  long debounceDelay;
+  unsigned long debounceDelay;
 };
 
 struct Light {
-  unsigned int pin;
-  String commandHigh;
-  String commandLow;
+  short pin;
+  char* commandHigh;
+  char* commandLow;
+  char* commandBlink;
+  bool blinking;
+  unsigned long lastBlink;
+  unsigned long blinkDuration;
 };
 
 class Faders
@@ -22,7 +27,7 @@ class Faders
     Fader _faders[PIN_COUNT];
   public:
     Faders();
-    void add(int pin, String startCommand, String stopCommand);
+    void add(short pin, char* startCommand, char* stopCommand);
     void wakeUp();
 };
 
@@ -37,7 +42,7 @@ class Lights
     unsigned int _inputDataLength;
   public:
     Lights();
-    void add(int pin, String commandHigh, String commandLow);
+    void add(short pin, char* commandHigh, char* commandLow, char* commandBlink);
     void wakeUp();
 };
 
@@ -51,7 +56,7 @@ Lights::Lights() {
   _strComplete = false;  
 }
 
-void Faders::add(int pin, String startCommand, String stopCommand) {
+void Faders::add(short pin, char* startCommand, char* stopCommand) {
   _faders[_count].lastState = HIGH;
   _faders[_count].lastDebounce = 0;
   _faders[_count].sent = false;
@@ -65,11 +70,13 @@ void Faders::add(int pin, String startCommand, String stopCommand) {
   _count++;
 }
 
-void Lights::add(int pin, String commandHigh, String commandLow) {
-  
+void Lights::add(short pin, char* commandHigh, char* commandLow, char* commandBlink) {
   _lights[_count].pin = pin;
   _lights[_count].commandHigh = commandHigh;
   _lights[_count].commandLow = commandLow;
+  _lights[_count].commandBlink = commandBlink;
+  _lights[_count].lastBlink = millis();
+  _lights[_count].blinkDuration = 500;
   
   pinMode(pin, OUTPUT);
   digitalWrite(pin, LOW);
@@ -111,30 +118,43 @@ void Lights::wakeUp() {
    char inputChar = (char)Serial.read();
    _inputData = (char*)realloc(_inputData, (_inputDataLength+1) * sizeof(char));
    if(inputChar == '\n') {
-     _strComplete = true;
      _inputData[_inputDataLength] = '\0';
+     for(int i = 0; i < _count; i++) {
+       if(strcmp(_lights[i].commandHigh, _inputData) == 0) {
+         _lights[i].blinking = false;
+         digitalWrite(_lights[i].pin, HIGH);
+       }
+       if(strcmp(_lights[i].commandLow, _inputData) == 0) {
+         _lights[i].blinking = false;
+         digitalWrite(_lights[i].pin, LOW);
+       }
+       if(strcmp(_lights[i].commandBlink, _inputData) == 0) {
+          _lights[i].blinking = true;
+       }
+     }
+     free(_inputData);
+     _inputData = 0;
+     _inputDataLength = 0;
+     
    } else {
      _inputData[_inputDataLength] = inputChar;
-   }
-   _inputDataLength++;
- }
- 
- if(!_strComplete) {
-   return;
- }
-  Serial.println(_inputData);
- for(int i = 0; i <= _count; i++) {
-   if(_lights[i].commandHigh == _inputData) {
-     digitalWrite(_lights[i].pin, HIGH);
-   }
-   if(_lights[i].commandLow == _inputData) {
-     digitalWrite(_lights[i].pin, LOW);
+     _inputDataLength++;
    }
  }
  
- _strComplete = false;
- _inputData = 0;
- _inputDataLength = 0;
+ for(int i = 0; i < _count; i++) {
+   if(_lights[i].blinking == true && (millis() - _lights[i].lastBlink) >= _lights[i].blinkDuration) {
+     short valeur;
+     if(digitalRead(_lights[i].pin) == LOW) {
+       valeur = HIGH;
+     } else {
+       valeur = LOW;
+     }
+     
+     digitalWrite(_lights[i].pin, valeur);
+     _lights[i].lastBlink = millis();
+   }
+ }
 }
 
 Lights lights;
@@ -142,7 +162,6 @@ Faders faders;
 
 void setup() {
   Serial.begin(9600);
-  /*
   // Lecteurs A et B
   faders.add(3, "PLAYER 1-1 START", "PLAYER 1-1 STOP");
   faders.add(2, "PLAYER 1-2 START", "PLAYER 1-2 STOP");
@@ -155,16 +174,13 @@ void setup() {
   faders.add(7, "CARTWALL 4 START/STOP", "");
   
   // Lumières
-  lights.add(3, "LIGHT 1 ON", "LIGHT 1 OFF");
-  lights.add(5, "LIGHT 2 ON", "LIGHT 2 OFF");
-  lights.add(6, "LIGHT 3 ON", "LIGHT 3 OFF");
-  */
+  lights.add(8, "LIGHT 1 ON", "LIGHT 1 OFF", "LIGHT 1 BLINK");
+  lights.add(9, "LIGHT 2 ON", "LIGHT 2 OFF", "LIGHT 2 BLINK");
+  lights.add(10, "LIGHT 3 ON", "LIGHT 3 OFF", "LIGHT 3 BLINK");
+  lights.add(11, "LIGHT 4 ON", "LIGHT 4 OFF", "LIGHT 4 BLINK");
 }
 
 void loop() {
   faders.wakeUp();
-}
-
-void serialEvent() {
   lights.wakeUp();
 }
