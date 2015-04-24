@@ -131,10 +131,7 @@ void Lights::wakeUp() {
        char* commandParam = (char*)malloc(0);
        
        for(int y = 0; y <= _inputDataLength; y++) {
-         if(cmd[y] == ' ' || cmd[y] == '\0') {
-           Serial.print("Match numero ");
-           Serial.println(partsCount);
-           
+         if(cmd[y] == ' ' || cmd[y] == '\0') {           
            int wLength;
            char* w;
            
@@ -171,15 +168,7 @@ void Lights::wakeUp() {
          }
        }
        
-       Serial.print("Name :");
-       Serial.println(name);
-       Serial.print("Command : ");
-       Serial.println(command);
-       Serial.print("Command param : ");
-       Serial.println(commandParam);
-       
        if(strcmp(name, _lights[i].name) == 0) {
-         Serial.println("C'est pour moi !");
          if(strcmp(command, "ON") == 0) {
            _lights[i].blinking = false;
            digitalWrite(_lights[i].pin, HIGH);
