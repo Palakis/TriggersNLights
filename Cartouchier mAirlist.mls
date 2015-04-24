@@ -18,7 +18,7 @@ var
 begin
 	for i := 1 to Engine.GetCartwallControl().GetPlayerCount() do
 	begin
-		ArduinoSend('LIGHT ' + IntToStr(i) + ' OFF')
+		ArduinoSend('LIGHT' + IntToStr(i) + ' OFF')
 	end;
 end;
 
@@ -33,11 +33,11 @@ begin
 		state := Engine.GetCartwallControl().GetPlayer(i - 1).GetState()
 		if (state = psLoaded) then
 		begin
-			ArduinoSend('LIGHT ' + IntToStr(i) + ' ON')
+			ArduinoSend('LIGHT' + IntToStr(i) + ' ON')
 		end;
 		if (state = psPlaying) then
 		begin
-			ArduinoSend('LIGHT ' + IntToStr(i) + ' BLINK')
+			ArduinoSend('LIGHT' + IntToStr(i) + ' BLINK')
 		end;
 	end;
 end;
@@ -84,19 +84,19 @@ begin
 	if (NewState = psLoaded) OR ((OldState = psPlaying) AND (NewState = psStopped)) then
 	begin
 		// Envoyer LIGHT id ON à la carte
-		ArduinoSend('LIGHT ' + IntToStr(PlayerIndex + 1) + ' ON')
+		ArduinoSend('LIGHT' + IntToStr(PlayerIndex + 1) + ' ON')
 	end;
 	
 	if (NewState = psPlaying) then
 	begin
 		// Envoyer LIGHT id BLINK à la carte
-		ArduinoSend('LIGHT ' + IntToStr(PlayerIndex+1) + ' BLINK');
+		ArduinoSend('LIGHT' + IntToStr(PlayerIndex+1) + ' BLINK');
 	end;
 	
 	if (NewState = psEmpty) then
 	begin
 		// Envoyer LIGHT id OFF à la carte
-		ArduinoSend('LIGHT ' + IntToStr(PlayerIndex + 1) + ' OFF')
+		ArduinoSend('LIGHT' + IntToStr(PlayerIndex + 1) + ' OFF')
 	end;
 end;
 
