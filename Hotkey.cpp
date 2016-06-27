@@ -27,9 +27,10 @@ void Hotkeys::wakeUp()
     
     if((millis() - _hotkeys[i].lastDebounce) > _hotkeys[i].debounceDelay) {
       if(reading == LOW && _hotkeys[i].sent == false) {
-        Keyboard.press(KEY_RIGHT_CTRL);
-        Keyboard.press(KEY_RIGHT_SHIFT);
+        Keyboard.press(KEY_LEFT_ALT);
+        Keyboard.press(KEY_LEFT_SHIFT);
         Keyboard.press(_hotkeys[i].key);
+        delay(100);
         Keyboard.releaseAll();
         
          _hotkeys[i].sent = true;

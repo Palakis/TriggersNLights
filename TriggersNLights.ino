@@ -12,29 +12,25 @@ void setup() {
   Keyboard.begin();
   Serial.begin(9600);
 
-  Serial.println("MSG: Initializing...");
-
   // Hotkeys
-  hotkeys.add(A0, 'e');
-  hotkeys.add(A1, 'r');
-  hotkeys.add(A2, 't');
-  hotkeys.add(A3, 'y');
-  hotkeys.add(A4, 'u');
-  hotkeys.add(A5, 'i');
-  hotkeys.add(2, 'o');
-  hotkeys.add(3, 'p');
+  hotkeys.add(A0, '1');
+  hotkeys.add(A1, '2');
+  hotkeys.add(A2, '3');
+  hotkeys.add(A3, '4');
+  hotkeys.add(A4, '5');
+  hotkeys.add(A5, '6');
+  hotkeys.add(2, '7');
+  hotkeys.add(3, '8');
   
   // Lumières
-  lights.add(4, "B1");
-  lights.add(5, "B2");
-  lights.add(6, "B3");
-  lights.add(7, "B4");
-  lights.add(8, "B5");
-  lights.add(9, "B6");
-  lights.add(10, "B7");
-  lights.add(11, "B8");
-
-  Serial.println("MSG: Initialized!");
+  lights.add(4, "BT1");
+  lights.add(5, "BT2");
+  lights.add(6, "BT3");
+  lights.add(7, "BT4");
+  lights.add(8, "BT5");
+  lights.add(9, "BT6");
+  lights.add(10, "BT7");
+  lights.add(11, "BT8");
 }
 
 void loop() {
